@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
@@ -32,12 +33,6 @@
 #include <utility>
 #include <vector>
 
-#if defined(_WIN32)
-#define PATH_SEP "\\"
-#else
-#define PATH_SEP "/"
-#endif
-
 /**
  * @brief return the terminal color control string according to the file mode
  *
@@ -55,7 +50,7 @@ auto colorOfMode(const std::string &mode) -> std::string {
 }
 
 auto isPathExist(const std::string &path) -> bool {
-  struct stat pathStat;
+  struct stat pathStat {};
   return (stat(path.c_str(), &pathStat) == 0);
 }
 
@@ -74,7 +69,7 @@ auto convertSize2HumanReadable(off_t size) -> std::string {
   if (size < KB_BORDER) {
     result << size << 'B';
   } else if (size > KB_BORDER && size < MB_BORDER) {
-    double num = size / DIV_MAGIC;
+    double num = static_cast<std::int32_t>(size) / DIV_MAGIC;
     result << std::fixed << std::setprecision(1) << num << 'K';
   } else if (size > MB_BORDER && size < GB_BORDER) {
     double num = static_cast<double>(size) / (MB_BORDER);
@@ -114,16 +109,16 @@ void doListDir(const std::string &path) {
   std::vector<std::pair<long, std::string>> container;
 
   while ((ent = readdir(dirPtr)) != nullptr) {
-    std::string fullPath = path + PATH_SEP + ent->d_name;
-    struct stat fullPathStat;
+    std::string fullPath = path + "/" + static_cast<char *>(ent->d_name);
+    struct stat fullPathStat {};
     if (stat(fullPath.c_str(), &fullPathStat) == 0) {
       const std::int32_t constexpr MODE_LEN = 12;
       const std::int32_t constexpr EXTRA_POS = 10;
-      std::array<char, MODE_LEN> modeStr;
+      std::array<char, MODE_LEN> modeStr{};
       // get str mode
       strmode(fullPathStat.st_mode, modeStr.data());
       // get extended attributes
-      int buf_len = listxattr(fullPath.c_str(), nullptr, 0, XATTR_NOFOLLOW);
+      ssize_t buf_len = listxattr(fullPath.c_str(), nullptr, 0, XATTR_NOFOLLOW);
       if (buf_len > 0) {
         modeStr[EXTRA_POS] = '@';
       }
@@ -154,7 +149,8 @@ void doListDir(const std::string &path) {
                    << fullPathStat.st_nlink << " " << passwdStruct->pw_name
                    << "  " << groupStruct->gr_name << " "
                    << std::setw(SIZE_WIDTH) << size << " " << time << " "
-                   << colorOfMode(modeStr.data()) << ent->d_name << "\033[0m"
+                   << colorOfMode(modeStr.data())
+                   << static_cast<char *>(ent->d_name) << "\033[0m"
                    << std::endl;
       container.emplace_back(fullPathStat.st_mtimespec.tv_sec,
                              stringstream.str());

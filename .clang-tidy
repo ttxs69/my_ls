@@ -13,7 +13,7 @@ ImplementationFileExtensions:
   - cpp
   - cxx
 HeaderFilterRegex: ''
-FormatStyle:     LLVM
+FormatStyle:     none
 User:            sarace
 CheckOptions:
   cert-dcl16-c.NewSuffixes: 'L;LL;LU;LLU'
